@@ -140,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
 
             View view = context.getLayoutInflater().inflate(this.ressource, parent, false);
 
-            //Book currentBook = ;
+            Book currentBook = bookList.get(position);
 
             return view;
         }

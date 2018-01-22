@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -27,123 +28,102 @@ import sp.fr.firebaserealtimedatabase.model.Book;
 public class MainActivity extends AppCompatActivity {
 
     private FirebaseDatabase firebaseDatabase;
-    private DatabaseReference bookRef;
+    private DatabaseReference bookReference;
     private List<Book> bookList;
     private ListView bookListView;
-
+    private BookArrayAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //Instance du moteur de base de données
         firebaseDatabase = FirebaseDatabase.getInstance();
-
-        //Référence à la clef Articles enfant de la base de données
-        //(table ou collection Articles)
-        bookRef = firebaseDatabase.getReference().child("Books");
-        bookListView = findViewById(R.id.bookListeView);
-
+        bookReference = firebaseDatabase.getReference().child("Books");
+        //Instanciation de la liste
         bookList = new ArrayList<>();
 
-        //Récupération des données avec abonnement aux modifications ultérieurs
-        bookRef.addValueEventListener(
-                new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        //Réinitialisation de la liste des livres
-                        bookList.clear();
+        bookListView = findViewById(R.id.bookListView);
+        adapter = new BookArrayAdapter(this, R.layout.book_list_items, bookList);
+        bookListView.setAdapter(adapter);
 
-                        //Boucle sur l'ensemble des noeuds
-                        for(DataSnapshot bookSnapshot : dataSnapshot.getChildren() ) {
+        //Récupération des données avec abonnement aux modifications ultérieures
+        bookReference.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                //Réinitialisation de la liste
+                bookList.clear();
 
-                            //Création d'une instance de book et hydratation avec les données du snapshot
-                            Book book = bookSnapshot.getValue(Book.class);
-
-                            //ajout du livre à la liste
-                            bookList.add(book);
-                        }
-                        Log.d("Main", "Fin de récupération des données");
-                    }
-
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-
-                    }
+                //Boucle sur l'ensemble des noeuds
+                for (DataSnapshot bookSnapshot : dataSnapshot.getChildren()){
+                    //Création d'une instance de Book et hydratation avec les données du snapshot
+                    Book book = bookSnapshot.getValue(Book.class);
+                    //ajout du livre à la liste
+                    bookList.add(book);
                 }
-        );
 
-        Log.d("Main", "Fin de on Create");
+                adapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
         //addBooks();
-
+        // (En commentaire pour ne plus ajouter de livre à la firebase)
     }
 
-    private void addBooks() {
+    private void addBooks(){
+        //Création d'un livre
+        Author hugo  = new Author("Hugo", "Victor","Français");
+        Author auster = new Author("Auster","Paul","Americain");
 
-        //Création d'un modèle
-        String bookTitle = bookRef.push().getKey();
-        Book book = new Book();
-        book.setTitle(bookTitle).setTitle("Angular pour les nuls");
-        book.setAuthor(new Author("seb", "Piwowarski", "Pologne"));
-        book.setPrice(25d);
-        //Persistence
-        bookRef.child(bookTitle).setValue(book);
+        String bookId = bookReference.push().getKey();
+        Book book = new Book("Les Miserables", 14.0, hugo);
+        bookReference.child(bookId).setValue(book);
 
-        //Création d'un modèle
-        bookTitle = bookRef.push().getKey();
-        book = new Book();
-        book.setTitle(bookTitle).setTitle("Android pour les nuls");
-        book.setAuthor(new Author("Antoine", "Piwowarski", "Pologne"));
-        book.setPrice(25d);
-        //Persistence
-        bookRef.child(bookTitle).setValue(book);
+        bookId = bookReference.push().getKey();
+        book = new Book("Ruy Blas", 12.0, hugo);
+        bookReference.child(bookId).setValue(book);
 
-        //Création d'un modèle
-        bookTitle = bookRef.push().getKey();
-        book = new Book();
-        book.setTitle(bookTitle).setTitle("PHP pour les nuls");
-        book.setAuthor(new Author("Jessica", "Gille", "France"));
-        book.setPrice(25d);
-        //Persistence
-        bookRef.child(bookTitle).setValue(book);
-
-        //Création d'un modèle
-        bookTitle = bookRef.push().getKey();
-        book = new Book();
-        book.setTitle(bookTitle).setTitle("JavaScript pour les nuls");
-        book.setAuthor(new Author("Jessica", "Gille", "France"));
-        book.setPrice(25d);
-        //Persistence
-        bookRef.child(bookTitle).setValue(book);
-
+        bookId = bookReference.push().getKey();
+        book = new Book("New York", 11.0, auster);
+        bookReference.child(bookId).setValue(book);
     }
 
     private class BookArrayAdapter extends ArrayAdapter<Book> {
 
         private Activity context;
-        private int ressource;
-        private List<Book> data;
+        int resource;
+        List<Book> data;
 
-        public BookArrayAdapter(@NonNull Activity context, int resource, List<Book> data) {
+        public BookArrayAdapter(Activity context, int resource, List<Book> data) {
             super(context, resource, data);
 
             this.context = context;
+            this.resource = resource;
             this.data = data;
-            this.ressource = resource;
-
         }
 
         @NonNull
         @Override
         public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
-
-            View view = context.getLayoutInflater().inflate(this.ressource, parent, false);
+            View view = context.getLayoutInflater().inflate(
+                    this.resource, parent, false);
 
             Book currentBook = bookList.get(position);
+            TextView textView = view.findViewById(R.id.bookListText);
+            textView.setText(
+                    currentBook.getTitle()
+                            + " par "
+                            + currentBook.getAuthor().getName()
+            );
 
             return view;
         }
+
     }
 
 }
